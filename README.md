@@ -1,7 +1,7 @@
 **This GitHub repo (<https://github.com/TheRealSourcer/widgets>) is the official
 source for the project. Do not download releases from unverified sources.**
 
-# Widgets (V0.2.2)
+# Widgets (V0.2.3)
 
 <img src="./icon.svg" width="128" height="128" alt="widgets-icon" align="right" onerror="this.style.display='none'"/>
 
@@ -25,7 +25,7 @@ Its features include:
 
 ## Prerequisites
 
-1. **GNOME Shell:** Version 50.
+1. **GNOME Shell:** Version 48, 49, 50 or 51.
 
 ## Get the extension
 

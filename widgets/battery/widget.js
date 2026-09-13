@@ -322,7 +322,7 @@ export function style(theme) {
 
 function createSlot(device, theme, createLabel) {
 	const slot = new St.BoxLayout({
-		vertical: true,
+		orientation: Clutter.Orientation.VERTICAL,
 		style_class: 'widget-battery-slot',
 		x_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,

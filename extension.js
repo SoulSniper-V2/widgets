@@ -600,7 +600,7 @@ class WidgetController {
   _createWidget(widget) {
     const [width, height] = sizeForWidget(widget);
     const actorParams = {
-      vertical: true,
+      orientation: Clutter.Orientation.VERTICAL,
       style_class: `widget widget-${widget.type}`,
       reactive: true,
       can_focus: true,
@@ -618,7 +618,7 @@ class WidgetController {
     actor.set_position(widget.x, widget.y);
 
     const body = new St.BoxLayout({
-      vertical: true,
+      orientation: Clutter.Orientation.VERTICAL,
       style_class: 'widget-body',
       x_expand: true,
       y_expand: true,

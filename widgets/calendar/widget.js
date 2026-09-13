@@ -62,12 +62,12 @@ export function render({body, createLabel, theme}) {
 		'widget-calendar-month',
 		`color: ${theme.text};`);
 	const grid = new St.BoxLayout({
-		vertical: true,
+		orientation: Clutter.Orientation.VERTICAL,
 		style_class: compact ? 'widget-calendar-grid widget-calendar-grid-compact' : 'widget-calendar-grid',
 		x_align: Clutter.ActorAlign.CENTER,
 	});
 	const content = new St.BoxLayout({
-		vertical: true,
+		orientation: Clutter.Orientation.VERTICAL,
 		style_class: 'widget-calendar-content',
 		x_align: Clutter.ActorAlign.CENTER,
 	});
