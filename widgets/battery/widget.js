@@ -250,9 +250,10 @@ function readBlueZDevices() {
 
 function deviceKey(device) {
 	const path = String(device.nativePath || '');
+	const macMatch = path.match(/(?:dev_)?((?:[0-9a-fA-F]{2}[:_]){5}[0-9a-fA-F]{2})/i);
 
-	if (path.startsWith('/org/bluez/')) {
-		return path;
+	if (macMatch) {
+		return macMatch[1].toLowerCase().replaceAll('_', ':');
 	};
 
 	return normalizeName(device.name);

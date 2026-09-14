@@ -24,6 +24,10 @@ function collectPictures(directory, images, seenDirectories, depth = 0) {
 		return;
 	};
 
+	if (!directory.query_exists(null)) {
+		return;
+	};
+
 	const path = directory.get_path();
 
 	if (!path || seenDirectories.has(path)) {

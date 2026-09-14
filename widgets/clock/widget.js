@@ -55,7 +55,7 @@ const AnalogClockFace = GObject.registerClass(
 			this._dark = theme?.dark ?? false;
 			this._accent = colorFromHex(theme?.accent, [0.86, 0.1, 0.12]);
 
-			this._repaintTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+			this._repaintTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
 				if (!this.get_parent()) {
 					this._repaintTimeoutId = 0;
 					return GLib.SOURCE_REMOVE;

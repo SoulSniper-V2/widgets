@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
+import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -67,7 +68,7 @@ function defaultWidgetPositions() {
 
   if (!monitor) {
     return null;
-  }
+  };
 
   const rightX = snap(Math.max(WIDGET_GAP, monitor.width - MEDIUM_WIDGET_WIDTH - WIDGET_GAP));
   const middleX = snap(Math.max(WIDGET_GAP, rightX - SMALL_WIDGET_SIZE - WIDGET_GAP));
@@ -99,21 +100,6 @@ function cloneDefaultWidgets() {
   }));
 };
 
-
-
-function desktopAppExists(appId) {
-  const dataDirs = [GLib.get_user_data_dir(), ...GLib.get_system_data_dirs()];
-
-  for (const dataDir of dataDirs) {
-    const file = Gio.File.new_for_path(GLib.build_filenamev([dataDir, 'applications', appId]));
-
-    if (file.query_exists(null)) {
-      return true;
-    };
-  };
-
-  return false;
-};
 
 
 function accentColor(settings) {
@@ -722,13 +708,15 @@ class WidgetController {
   };
 
   _openWidgetApp(type) {
-    for (const appId of WIDGET_APP_IDS[type] ?? []) {
-      if (!desktopAppExists(appId)) {
-        continue;
-      };
+    const appSys = Shell.AppSystem.get_default();
 
-      GLib.spawn_command_line_async(`gtk-launch ${appId}`);
-      return;
+    for (const appId of WIDGET_APP_IDS[type] ?? []) {
+      const app = appSys.lookup_app(appId);
+
+      if (app) {
+        app.activate();
+        return;
+      };
     };
   };
 
@@ -837,9 +825,15 @@ class WidgetController {
       const [width, height] = sizeForWidget(widget);
       const monitor = Main.layoutManager.primaryMonitor;
       const minY = Main.panel?.height ? Main.panel.height + WIDGET_GAP : WIDGET_GAP;
+      const nextX = clamp(snap(drag.actorX + stageX - drag.stageX), WIDGET_GAP, Math.max(WIDGET_GAP, monitor.width - width - WIDGET_GAP));
+      const nextY = clamp(snap(drag.actorY + stageY - drag.stageY), minY, Math.max(minY, monitor.height - height - WIDGET_GAP));
 
-      widget.x = clamp(snap(drag.actorX + stageX - drag.stageX), WIDGET_GAP, Math.max(WIDGET_GAP, monitor.width - width - WIDGET_GAP));
-      widget.y = clamp(snap(drag.actorY + stageY - drag.stageY), minY, Math.max(minY, monitor.height - height - WIDGET_GAP));
+      if (nextX === widget.x && nextY === widget.y) {
+        return;
+      };
+
+      widget.x = nextX;
+      widget.y = nextY;
       actor.set_position(widget.x, widget.y);
       this._syncEditControls(widget);
       this._resolveLayout(widget, false, false);
@@ -1019,22 +1013,41 @@ class WidgetController {
     const maxY = Math.max(minY, monitor.height - height - WIDGET_GAP);
     const originX = clamp(snap(widget.x), minX, maxX);
     const originY = clamp(snap(widget.y), minY, maxY);
-    const candidates = [];
 
-    for (let y = minY; y <= maxY; y += GRID_SIZE) {
-      for (let x = minX; x <= maxX; x += GRID_SIZE) {
-        const snappedX = clamp(snap(x), minX, maxX);
-        const snappedY = clamp(snap(y), minY, maxY);
-        const distance = Math.abs(snappedX - originX) + Math.abs(snappedY - originY);
-        candidates.push({x: snappedX, y: snappedY, distance});
-      };
+    if (this._positionIsFreeAgainst(widget, originX, originY, blockingWidgets)) {
+      return {x: originX, y: originY};
     };
 
-    candidates.sort((a, b) => a.distance - b.distance);
+    const maxRadius = Math.max(originX - minX, maxX - originX) + Math.max(originY - minY, maxY - originY);
 
-    for (const candidate of candidates) {
-      if (this._positionIsFreeAgainst(widget, candidate.x, candidate.y, blockingWidgets)) {
-        return {x: candidate.x, y: candidate.y};
+    for (let radius = GRID_SIZE; radius <= maxRadius; radius += GRID_SIZE) {
+      let bestX = null;
+      let bestY = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (let dx = -radius; dx <= radius; dx += GRID_SIZE) {
+        const dy = radius - Math.abs(dx);
+
+        for (const sign of (dy === 0 ? [1] : [-1, 1])) {
+          const x = clamp(originX + dx, minX, maxX);
+          const y = clamp(originY + sign * dy, minY, maxY);
+
+          if (!this._positionIsFreeAgainst(widget, x, y, blockingWidgets)) {
+            continue;
+          };
+
+          const distance = Math.abs(x - originX) + Math.abs(y - originY);
+
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestX = x;
+            bestY = y;
+          };
+        };
+      };
+
+      if (bestX !== null) {
+        return {x: bestX, y: bestY};
       };
     };
 

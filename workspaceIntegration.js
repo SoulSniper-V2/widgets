@@ -18,7 +18,6 @@ export class WorkspaceIntegration {
   constructor() {
     this._enabled = false;
     this._source = null;
-    this._signals = [];
     this._overviewClones = new Map();
     this._overviewSyncId = 0;
     this._workspaceAnimationClones = new Set();
@@ -28,50 +27,35 @@ export class WorkspaceIntegration {
     this._enabled = true;
     this.setSource(source);
 
-    this._signals.push([
-      Main.uiGroup,
-      Main.uiGroup.connect('child-added', (_group, child) => {
-        if (child instanceof WorkspaceAnimationMonitorGroup) {
-          this._addWorkspaceAnimationMonitorGroup(child)
-        };
-      }),
-    ]);
+    Main.uiGroup.connectObject('child-added', (_group, child) => {
+      if (child instanceof WorkspaceAnimationMonitorGroup) {
+        this._addWorkspaceAnimationMonitorGroup(child);
+      };
+    }, this);
 
-    this._signals.push([
-      Main.overview,
-      Main.overview.connect('showing', () => {
+    Main.overview.connectObject(
+      'showing', () => {
         this._syncOverviewPreviews();
         this.queueSync();
-      }),
-    ]);
-
-    this._signals.push([
-      Main.overview,
-      Main.overview.connect('shown', () => {
+      },
+      'shown', () => {
         this._syncOverviewPreviews();
-      }),
-    ]);
-
-    this._signals.push([
-      Main.overview,
-      Main.overview.connect('hidden', () => {
+      },
+      'hidden', () => {
         this._clearOverviewClones();
-      }),
-    ]);
+      },
+      this
+    );
 
-    this._signals.push([
-      global.workspace_manager,
-      global.workspace_manager.connect('notify::n-workspaces', () => {
+    global.workspace_manager.connectObject(
+      'notify::n-workspaces', () => {
         this.queueSync();
-      }),
-    ]);
-
-    this._signals.push([
-      global.workspace_manager,
-      global.workspace_manager.connect('workspaces-reordered', () => {
+      },
+      'workspaces-reordered', () => {
         this.queueSync();
-      }),
-    ]);
+      },
+      this
+    );
 
     if (Main.overview.visible || Main.overview.visibleTarget) {
       this.queueSync();
@@ -84,11 +68,10 @@ export class WorkspaceIntegration {
     this._clearOverviewClones();
     this._clearWorkspaceAnimationClones();
 
-    for (const [actor, id] of this._signals) {
-      actor.disconnect(id);
-    };
+    Main.uiGroup.disconnectObject(this);
+    Main.overview.disconnectObject(this);
+    global.workspace_manager.disconnectObject(this);
 
-    this._signals = [];
     this._source = null;
   };
 
@@ -264,7 +247,7 @@ export class WorkspaceIntegration {
     } else {
       clone.set_position(target.x, target.y);
       clone.set_size(target.width, target.height);
-    }
+    };
 
     container.add_child(clone);
 
