@@ -1018,40 +1018,39 @@ class WidgetController {
       return {x: originX, y: originY};
     };
 
-    const maxRadius = Math.max(originX - minX, maxX - originX) + Math.max(originY - minY, maxY - originY);
+    let bestX = originX;
+    let bestY = originY;
+    let bestDistance = Number.POSITIVE_INFINITY;
 
-    for (let radius = GRID_SIZE; radius <= maxRadius; radius += GRID_SIZE) {
-      let bestX = null;
-      let bestY = null;
-      let bestDistance = Number.POSITIVE_INFINITY;
+    // Visit each screen-grid position once, without allocating or sorting candidates.
+    for (let gridY = snap(minY); gridY <= Math.ceil(maxY / GRID_SIZE) * GRID_SIZE; gridY += GRID_SIZE) {
+      const y = clamp(gridY, minY, maxY);
 
-      for (let dx = -radius; dx <= radius; dx += GRID_SIZE) {
-        const dy = radius - Math.abs(dx);
-
-        for (const sign of (dy === 0 ? [1] : [-1, 1])) {
-          const x = clamp(originX + dx, minX, maxX);
-          const y = clamp(originY + sign * dy, minY, maxY);
-
-          if (!this._positionIsFreeAgainst(widget, x, y, blockingWidgets)) {
-            continue;
-          };
-
-          const distance = Math.abs(x - originX) + Math.abs(y - originY);
-
-          if (distance < bestDistance) {
-            bestDistance = distance;
-            bestX = x;
-            bestY = y;
-          };
-        };
+      if (clamp(snap(y), minY, maxY) !== y) {
+        continue;
       };
 
-      if (bestX !== null) {
-        return {x: bestX, y: bestY};
+      for (let gridX = snap(minX); gridX <= Math.ceil(maxX / GRID_SIZE) * GRID_SIZE; gridX += GRID_SIZE) {
+        const x = clamp(gridX, minX, maxX);
+
+        // Collision checks must use the same position that _clampWidget will keep.
+        if (clamp(snap(x), minX, maxX) !== x || (x === originX && y === originY)) {
+          continue;
+        };
+
+        const distance = Math.abs(x - originX) + Math.abs(y - originY);
+
+        if (distance >= bestDistance || !this._positionIsFreeAgainst(widget, x, y, blockingWidgets)) {
+          continue;
+        };
+
+        bestDistance = distance;
+        bestX = x;
+        bestY = y;
       };
     };
 
-    return {x: originX, y: originY};
+    return {x: bestX, y: bestY};
   };
 
   _resolveLayout(anchor = null, animate = false, save = false) {
